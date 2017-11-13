@@ -50,7 +50,9 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
-    <Compile Include="Class1.cs" />
+    <Compile Include="BindType.cs" />
+    <Compile Include="Exceptions\TypeRegistrationException.cs" />
+    <Compile Include="TestClass.cs" />
     <Compile Include="Container.cs" />
     <Compile Include="DynamicMethodBuilder.cs" />
     <Compile Include="Exceptions\ImportConstructorException.cs" />

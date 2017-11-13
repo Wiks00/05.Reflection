@@ -8,6 +8,7 @@ using System;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 
 namespace MyIoC
 {
@@ -15,44 +16,63 @@ namespace MyIoC
     {
         private static DynamicMethod dynamicMethod;
 
-        public static ILGenerator Init(ConstructorInfo constructorInfo)
+        public static ILGenerator Init(ConstructorInfo constructorInfo, Type returnType = null)
         {
-            dynamicMethod = new DynamicMethod("DM$OBJ_FACTORY_" + constructorInfo.DeclaringType,
-                constructorInfo.DeclaringType,
-                constructorInfo.GetParameters().Select(param => param.ParameterType).ToArray(),
-                constructorInfo.DeclaringType);
+            returnType = returnType ?? constructorInfo.DeclaringType;
+
+            dynamicMethod = new DynamicMethod("DM$OBJ_FACTORY_" + returnType, returnType, Type.EmptyTypes);
 
             var ilGenerator = dynamicMethod.GetILGenerator();
             ilGenerator.Emit(OpCodes.Newobj, constructorInfo);
+
             return ilGenerator;
         }
 
-        public static ILGenerator AddCtor(this ILGenerator generator, ConstructorInfo constructorInfo)
+        public static ILGenerator AddCtor(this ILGenerator generator, ConstructorInfo constructorInfo, Type initType = null)
         {
-            generator.Emit(OpCodes.Newobj, constructorInfo);
-            return generator;
-        }
-
-        public static ILGenerator AddFiled(this ILGenerator generator, FieldInfo fieldInfo)
-        {
-            generator.Emit(OpCodes.Newobj, fieldInfo);
-            return generator;
-        }
-
-        public static ILGenerator AddProp(this ILGenerator generator, PropertyInfo propertyInfo, Type value)
-        {
-            generator.EmitCall(OpCodes.Call, propertyInfo.SetMethod, new Type[1]
+            if (ReferenceEquals(generator, null))
             {
-                value
-            });
+                return Init(constructorInfo, initType);
+            }
+
+            generator.Emit(OpCodes.Newobj, constructorInfo);
+            
             return generator;
         }
 
-        public static Func<T> Compile<T>(this ILGenerator generator) where T : class
+        public static ILGenerator AddField(this ILGenerator generator, FieldInfo fieldInfo)
         {
-            generator.Emit(OpCodes.Pop);
+            generator.Emit(OpCodes.Stfld, fieldInfo);
+
+            return generator;
+        }
+
+        public static ILGenerator AddProperty(this ILGenerator generator, PropertyInfo propertyInfo)
+        {
+            generator.Emit(OpCodes.Callvirt, propertyInfo.SetMethod);
+
+            return generator;
+        }
+
+        public static ILGenerator Dup(this ILGenerator generator)
+        {
+            generator.Emit(OpCodes.Dup);
+
+            return generator;
+        }
+
+        public static Func<T> Compile<T>(this ILGenerator generator)
+        {
             generator.Emit(OpCodes.Ret);
-            return (Func<T>) dynamicMethod.CreateDelegate(typeof(Func<T>));
+
+            return (Func<T>)dynamicMethod.CreateDelegate(typeof(Func<T>));
+        }
+
+        public static Func<object> Compile(this ILGenerator generator)
+        {
+            generator.Emit(OpCodes.Ret);
+
+            return (Func<object>)dynamicMethod.CreateDelegate(typeof(Func<object>));
         }
     }
 }

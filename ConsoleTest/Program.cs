@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -16,10 +17,45 @@ namespace ConsoleTest
             var container = new Container();
             container.RegistrateAssembly(Assembly.GetExecutingAssembly());
 
-            container.RegistrateTypes(typeof(object));
+            Stopwatch watch = new Stopwatch();
+
+            watch.Start();
+
             container.RegistrateTypes(typeof(CustomerDAL));
-            container.RegistrateTypes(typeof(A1));
-            container.RegistrateTypes(typeof(A2));
+
+            watch.Stop();
+
+            Console.WriteLine("Init DAL: " + watch.ElapsedTicks);
+
+            watch.Reset();
+
+            watch.Start();
+
+            container.RegistrateTypes(typeof(A));
+
+            watch.Stop();
+
+            Console.WriteLine("Init a: " + watch.ElapsedTicks);
+
+            watch.Reset();
+
+            watch.Start();
+
+            var a = container.CreateInstance<A>();
+
+            watch.Stop();
+
+            Console.WriteLine("Create a: " + watch.ElapsedTicks);
+
+            watch.Reset();
+
+            watch.Start();
+
+            var b = container.CreateInstance<A2>();
+
+            watch.Stop();
+
+            Console.WriteLine("Create a2: " + watch.ElapsedTicks);
 
             Console.ReadKey();
         }

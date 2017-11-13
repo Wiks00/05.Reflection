@@ -73,6 +73,7 @@ namespace MyIoC
     [Export]
     public class A8
     {
+        [ImportConstructor]
         public A8(ICustomerDAL cd)
         {
         }
