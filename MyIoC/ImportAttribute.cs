@@ -11,7 +11,7 @@ namespace MyIoC
 	{
 	}
 
-	[AttributeUsage(AttributeTargets.Class)]
+	[AttributeUsage(AttributeTargets.Constructor)]
 	public class ImportConstructorAttribute : Attribute
 	{
 	}

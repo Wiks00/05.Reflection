@@ -6,18 +6,76 @@ using System.Threading.Tasks;
 
 namespace MyIoC
 {
-	[ImportConstructor]
-	public class CustomerBLL
-	{
-		public CustomerBLL(ICustomerDAL dal, Logger logger)
-		{ }
-	}
+    public class A
+    {
+        [ImportConstructor]
+        public A(A1 a1, A2 a2)
+        {
+        }
+    }
 
-	public class CustomerBLL2
-	{
-		[Import]
-		public ICustomerDAL CustomerDAL { get; set; }
-		[Import]
-		public Logger logger { get; set; }
-	}
+    [Export]
+    public class A1
+    {
+        [Import]
+        public A6 a6 { get; set; }
+    }
+
+    [Export]
+    public class A2
+    {
+        [Import]
+        public A3 a3;
+
+        [Import]
+        public A4 a4 { get; set; }
+    }
+
+    [Export]
+    public class A3
+    {
+        [ImportConstructor]
+        public A3(A5 a5)
+        {
+        }
+    }
+
+    [Export]
+    public class A4
+    {
+        [Import]
+        public A6 a6;
+    }
+
+    [Export]
+    public class A5
+    {
+        [ImportConstructor]
+        public A5(A7 a7, A6 a6, A8 a8)
+        {
+        }
+    }
+
+    [Export]
+    public class A6
+    {
+    }
+
+    [Export]
+    public class A7
+    {
+        [ImportConstructor]
+        public A7(A6 a6)
+        {
+        }
+    }
+
+    [Export]
+    public class A8
+    {
+        public A8(ICustomerDAL cd)
+        {
+        }
+    }
+
 }
