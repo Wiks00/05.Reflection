@@ -56,8 +56,6 @@
     <Compile Include="Container.cs" />
     <Compile Include="DynamicMethodBuilder.cs" />
     <Compile Include="Exceptions\ImportConstructorException.cs" />
-    <Compile Include="ICustomerDAL.cs" />
-    <Compile Include="Logger.cs" />
     <Compile Include="ImportAttribute.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

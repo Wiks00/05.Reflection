@@ -5,7 +5,6 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-using IoCSample;
 using MyIoC;
 
 namespace ConsoleTest
@@ -15,47 +14,75 @@ namespace ConsoleTest
         static void Main(string[] args)
         {
             var container = new Container();
-            container.RegistrateAssembly(Assembly.GetExecutingAssembly());
+            container.RegistrateAssembly(Assembly.GetAssembly(typeof(A)));
 
             Stopwatch watch = new Stopwatch();
 
-            watch.Start();
+            foreach (Type type in new[] { typeof(CustomerDAL), typeof(A) })
+            {
+                watch.Start();
 
-            container.RegistrateTypes(typeof(CustomerDAL));
+                container.RegistrateTypes(type);
 
-            watch.Stop();
+                watch.Stop();
 
-            Console.WriteLine("Init DAL: " + watch.ElapsedTicks);
+                Console.WriteLine($"Init {type}: " + watch.ElapsedTicks);
 
-            watch.Reset();
+                watch.Reset();
+            }
 
-            watch.Start();
+            //foreach (Type type in new[] { typeof(ContractBLL), typeof(A), typeof(A2), typeof(A5), typeof(A) })
+            //{
+            //    watch.Start();
 
-            container.RegistrateTypes(typeof(A));
+            //    var a = container.CreateInstance<A>();
 
-            watch.Stop();
+            //    watch.Stop();
 
-            Console.WriteLine("Init a: " + watch.ElapsedTicks);
+            //    Console.WriteLine($"Create {type}: " + watch.ElapsedTicks);
 
-            watch.Reset();
+            //    watch.Reset();
+            //}
 
-            watch.Start();
+            List<long> ticks = new List<long>();
 
-            var a = container.CreateInstance<A>();
+            var first = container.CreateInstance<A>();
 
-            watch.Stop();
+            foreach (Type type in Enumerable.Repeat(typeof(A), 100))
+            {
+                watch.Start();
 
-            Console.WriteLine("Create a: " + watch.ElapsedTicks);
+                var a = container.CreateInstance<A>();
 
-            watch.Reset();
+                watch.Stop();
 
-            watch.Start();
+                //Console.WriteLine($"Create {type} by IoC: " + watch.ElapsedTicks);
 
-            var b = container.CreateInstance<A2>();
+                ticks.Add(watch.ElapsedTicks);
 
-            watch.Stop();
+                watch.Reset();
+            }
 
-            Console.WriteLine("Create a2: " + watch.ElapsedTicks);
+            Console.WriteLine("Average by IoC: " + ticks.Average());
+
+            ticks.Clear();
+
+            foreach (Type type in Enumerable.Repeat(typeof(A), 100))
+            {
+                watch.Start();
+
+                var a = new A(new A1 { a6 = new A6() }, new A2 { a3 = new A3(new A5(new A7(new A6()), new A6(), new A8(new CustomerDAL()))), a4 = new A4 { a6 = new A6() } });
+
+                watch.Stop();
+
+                //Console.WriteLine($"Create {type} by hand: " + watch.ElapsedTicks);
+
+                ticks.Add(watch.ElapsedTicks);
+
+                watch.Reset();
+            }
+
+            Console.WriteLine("Average by hand: " + ticks.Average());
 
             Console.ReadKey();
         }

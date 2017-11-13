@@ -21,13 +21,13 @@ namespace MyIoC
             type =>
                 type.GetConstructors().FirstOrDefault(ctor => ctor.IsDefined(typeof(ImportConstructorAttribute), true));
 
-        private readonly List<Assembly> dependencyAssemblys = new List<Assembly>();
-        private /*readonly*/ HashSet<Type> registeredTypes = new HashSet<Type>();
+        private HashSet<Type> registeredTypes = new HashSet<Type>();
 
-        private static Dictionary<Type, Func<object>> compiledCreators = new Dictionary<Type, Func<object>>();
+        private readonly Dictionary<Type, Func<object>> compiledCreators = new Dictionary<Type, Func<object>>();
 
-        private readonly Dictionary<Type, Dictionary<object, int[]>> builderStore =
-            new Dictionary<Type, Dictionary<object, int[]>>();
+        private readonly Dictionary<Type, Dictionary<object, int[]>> builderStore = new Dictionary<Type, Dictionary<object, int[]>>();
+
+        #region Constructors
 
         public Container()
         {
@@ -49,12 +49,9 @@ namespace MyIoC
             RegistrateAssemblys(assemblys.ToArray());
         }
 
-        public static bool IsHaveImportAttribute(Type type)
-        {
-            if (!GetImportPropertyInfo(type).Any() && !GetImportFieldInfo(type).Any())
-                return type.GetCustomAttribute<ImportConstructorAttribute>() != null;
-            return true;
-        }
+        #endregion
+
+        #region type Registrator
 
         public void RegistrateAssembly(Assembly assembly)
         {
@@ -68,7 +65,19 @@ namespace MyIoC
                 throw new ArgumentException("Input parameter can not be null or empty", nameof(assemblys));
             }
 
-            foreach (var assembly in assemblys);
+            Type[] types = assemblys.SelectMany(assembly => assembly.GetTypes().Where(type => !ReferenceEquals(type.GetCustomAttribute<ExportAttribute>(), null))).ToArray();
+
+            Type[] contracTypes = types.Where(type => !ReferenceEquals(type.GetCustomAttribute<ExportAttribute>().Contract, null)).ToArray();
+
+            if (contracTypes.Length > 0)
+            {
+                RegistrateTypes(contracTypes);
+            }
+
+            if (types.Length > 0)
+            {
+                RegistrateTypes(types);
+            }
         }
 
         public void RegistrateTypes(params Type[] types)
@@ -136,18 +145,18 @@ namespace MyIoC
                         foreach (var propertyInfo in propertys)
                         {
                             var pt = propertyInfo.PropertyType;
-                            //ToDo : new [] { IndexOf } 
+
                             builderStore[type].Add(propertyInfo, new []{ tempList.IndexOf(pt) });
                         }
 
                         foreach (var fieldInfo in fields)
                         {
                             var pt = fieldInfo.FieldType;
-                            //ToDo : new [] { IndexOf } 
+
                             builderStore[type].Add(fieldInfo, new[] { tempList.IndexOf(pt) });
                         }
 
-                        if (nestedTypes.Any())
+                        if (nestedTypes.Except(types).Any())
                         {                         
                             InnerRegistrateTypes(true, nestedTypes);
                         }
@@ -168,7 +177,10 @@ namespace MyIoC
                         }
                     });
 
-                    InnerRegistrateTypes(true, parameters);
+                    if (parameters.Except(types).Any())
+                    {
+                        InnerRegistrateTypes(true, parameters);
+                    }
                 }
 
                 registeredTypes.Add(type);
@@ -184,7 +196,7 @@ namespace MyIoC
                 }
                 else
                 {
-                    if (!ReferenceEquals(customAttribute.Contract, null))
+                    if (!ReferenceEquals(customAttribute.Contract, null) && !registeredTypes.Contains(customAttribute.Contract))
                     {
                         var tempList = registeredTypes.ToList();
                         var contract = customAttribute.Contract;
@@ -200,6 +212,8 @@ namespace MyIoC
                 }
             }
         }
+
+        #endregion
 
         #region BindType
 
@@ -253,13 +267,15 @@ namespace MyIoC
 
         #endregion
 
+        #region Instance Creator
+
         public object CreateInstance(Type type)
         {
             Func<object> constructor;
 
             if (!compiledCreators.TryGetValue(type, out constructor))
             {
-                ILGenerator methodBuilder = Create(type);
+                ILGenerator methodBuilder = CreateMethod(type);
 
                 constructor = methodBuilder.Compile();
 
@@ -277,7 +293,7 @@ namespace MyIoC
 
             if (!compiledCreators.TryGetValue(type, out constructor))
             {
-                ILGenerator methodBuilder = Create(type);
+                ILGenerator methodBuilder = CreateMethod(type);
 
                 constructor = methodBuilder.Compile<T>();
 
@@ -287,7 +303,7 @@ namespace MyIoC
             return (T)constructor();
         }
 
-        private ILGenerator Create(Type type)
+        private ILGenerator CreateMethod(Type type)
         {
             ILGenerator methodBuilder = null;
 
@@ -378,10 +394,19 @@ namespace MyIoC
             return methodBuilder;
         }
 
+        #endregion
+
+        #region delegates
+
         private delegate IEnumerable<FieldInfo> GetImportFieldType(Type targeType);
 
         private delegate IEnumerable<PropertyInfo> GetImportPropertyType(Type targeType);
 
         private delegate ConstructorInfo GetImportConstructorType(Type targeType);
+
+        #endregion
+
+        public static bool IsHaveImportAttribute(Type type)
+            => GetImportPropertyInfo(type).Any() || GetImportFieldInfo(type).Any() || !ReferenceEquals(GetImportConstructorInfo(type), null); 
     }
 }
